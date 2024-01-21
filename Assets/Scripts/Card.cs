@@ -5,7 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Playables;
 
-public class Card : StateableObjectBase, IDamageable, IAttackable, IPlayableObject
+public class Card : StateableObjectBase, IDamageable, IAttackable, IPlayableObject, ITurnable
 {
     [Space(5f)]
     [SerializeField] private GameObject _playVisualState;
@@ -42,6 +42,7 @@ public class Card : StateableObjectBase, IDamageable, IAttackable, IPlayableObje
     public bool IsPlayable { get; set; } = false;
 
     private ObjectMouseBehaviour _objectMouseBehaviour;
+    private bool _hasTurn;
 
     public enum ECardGameplayState : byte
     {
@@ -94,12 +95,13 @@ public class Card : StateableObjectBase, IDamageable, IAttackable, IPlayableObje
         this._currentHealth = cardData.Health;
 
         this._objectMouseBehaviour = new ObjectMouseBehaviour(
-            () => !this._isDead && this._isControllable,
-            () => !this._isDead && this._isControllable,    
+            () => !this._isDead && this._isControllable && this._hasTurn,
+            () => !this._isDead && this._isControllable && this._hasTurn,    
             this.transform,
             () => this._defaultPosition,
             (id) => false,
             this.GetDamage(),
+            this,
             this
             );
     }
@@ -168,5 +170,20 @@ public class Card : StateableObjectBase, IDamageable, IAttackable, IPlayableObje
     public int GetDamage()
     {
         return this._currentCardData.Damage;
+    }
+
+    public void OnTurnStart()
+    {
+        this._hasTurn = true;
+    }
+
+    public void OnTurnEnd()
+    {
+        this._hasTurn = false;
+    }
+
+    public bool IsDead()
+    {
+        return this._isDead;
     }
 }

@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: WhiteKingHeroData
   m_EditorClassIdentifier: 
   <Icon>k__BackingField: {fileID: 21300000, guid: 510cd665938e1d94fa89bc2ec54a9f3c, type: 3}
-  <Health>k__BackingField: 100
+  <Health>k__BackingField: 20
   <Damage>k__BackingField: 2

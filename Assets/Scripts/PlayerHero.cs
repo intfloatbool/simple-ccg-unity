@@ -1,10 +1,11 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
 
-public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
+public class PlayerHero : StateableObjectBase, IDamageable, IAttackable, ITurnable
 {
     [SerializeField] private GameObject _actionState;
     [SerializeField] private GameObject _deathState;
@@ -36,12 +37,16 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
     public IReadOnlyCollection<Card> CurrentHandCardList => _currentHandCardList;
 
     private LinkedList<Card> _currentDeckCardList = new LinkedList<Card>();
+    public IReadOnlyCollection<Card> CurrentDeckCardList => _currentDeckCardList;
 
     private int _currentHeroHp;
     private bool _isDead;
 
     private ObjectMouseBehaviour _objectMouseBehaviour;
     private Vector3 _defaultPosition;
+    private bool _hasTurn;
+
+    public event Action OnDead;
 
     protected override void Awake()
     {
@@ -88,8 +93,8 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
         this._currentHeroHp = this._currentHeroData.Health;
 
         this._objectMouseBehaviour = new ObjectMouseBehaviour(
-            () => !this._isDead && this == ObjectByTurnOwnerController.LocalPlayerHero,
-            () => !this._isDead && this == ObjectByTurnOwnerController.LocalPlayerHero,
+            () => !this._isDead && this == ObjectByTurnOwnerController.LocalPlayerHero && this._hasTurn,
+            () => !this._isDead && this == ObjectByTurnOwnerController.LocalPlayerHero && this._hasTurn,
             transform,
             () => this._defaultPosition,
             (id) =>
@@ -97,6 +102,7 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
                 return this._currentDeckCardList.Any(c => c.gameObject.GetInstanceID() == id) || this._currentHandCardList.Any(c => c.gameObject.GetInstanceID() == id);
             },
             this._currentHeroData.Damage,
+            this,
             this
             );
     }
@@ -121,7 +127,11 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
     public void AddCardInHand(Card card)
     {
         AddCardInternal(card, this._currentHandCardList, this._handCardPositioningLogic, this._cardInHandState);
-        card.SetOnClickMethod((clickedCard) => PutCardOnTable(clickedCard));
+        card.SetOnClickMethod((clickedCard) =>
+        {
+            PutCardOnTable(clickedCard);
+            clickedCard.OnTurnStart();
+        });
     }
 
     public void RemoveCardFromHand(Card card)
@@ -193,7 +203,7 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
 
     public void Attack(IDamageable damageable)
     {
-        //TODO:
+        damageable.RecieveDamage(this._currentHeroData.Damage);
     }
 
     public void Death()
@@ -206,6 +216,16 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
     public void OnTurnStateChanged(bool isMyTurn)
     {
         this._turnIndicatorSprite.gameObject.SetActive(isMyTurn);
+        
+        if(isMyTurn)
+        {
+            foreach (Card cardOnDeck in this._currentDeckCardList)
+            {
+                cardOnDeck.OnTurnStart();
+            }
+
+            OnTurnStart();
+        }
     }
 
     public void RecieveDamage(int damage)
@@ -225,6 +245,8 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
         if (this._isDead)
         {
             SetStateByName("DEATH_STATE");
+
+            this.OnDead?.Invoke();
         }
     }
 
@@ -241,5 +263,20 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
     private void OnMouseUp()
     {
         this._objectMouseBehaviour.OnMouseUp();
+    }
+
+    public void OnTurnStart()
+    {
+        this._hasTurn = true;
+    }
+
+    public void OnTurnEnd()
+    {
+        this._hasTurn = false;
+    }
+
+    public bool IsDead()
+    {
+        return this._isDead;
     }
 }

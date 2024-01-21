@@ -10,8 +10,9 @@ public class ObjectMouseBehaviour
     private Transform _transform;
     private int _damage;
     private IDamageable _selfDamageable;
+    private ITurnable _selfTurnable;
 
-    public ObjectMouseBehaviour(Func<bool> isMouseDragEnabled, Func<bool> isMouseUpEnabled, Transform transform, Func<Vector3> getDefaultPosition, Func<int, bool> checkIsAlly, int damage, IDamageable selfDamageable)
+    public ObjectMouseBehaviour(Func<bool> isMouseDragEnabled, Func<bool> isMouseUpEnabled, Transform transform, Func<Vector3> getDefaultPosition, Func<int, bool> checkIsAlly, int damage, IDamageable selfDamageable, ITurnable selfTurnable)
     {
         this._isMouseDragEnabled = isMouseDragEnabled;
         this._isMouseUpEnabled = isMouseUpEnabled;
@@ -20,6 +21,7 @@ public class ObjectMouseBehaviour
         this._checkIsAlly = checkIsAlly;
         this._damage = damage;
         this._selfDamageable = selfDamageable;
+        this._selfTurnable = selfTurnable;
     }
 
     public void OnMouseDrag()
@@ -73,6 +75,8 @@ public class ObjectMouseBehaviour
                 {
                     this._selfDamageable.RecieveDamage(attackable.GetDamage());
                 }
+
+                this._selfTurnable.OnTurnEnd();
             }
 
             break;

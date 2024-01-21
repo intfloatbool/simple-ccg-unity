@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: LichHeroData
   m_EditorClassIdentifier: 
   <Icon>k__BackingField: {fileID: 21300000, guid: 52eea4051dab0674f81ca24f459e8593, type: 3}
-  <Health>k__BackingField: 100
+  <Health>k__BackingField: 20
   <Damage>k__BackingField: 2
