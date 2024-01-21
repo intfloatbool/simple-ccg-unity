@@ -40,16 +40,24 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
     private int _currentHeroHp;
     private bool _isDead;
 
+    private ObjectMouseBehaviour _objectMouseBehaviour;
+    private Vector3 _defaultPosition;
+
     protected override void Awake()
     {
         base.Awake();
 
-        if(_defaultHeroData != null)
+        if (_defaultHeroData != null)
         {
             SetHeroData(_defaultHeroData);
         }
 
         SetDiamondCount(this._startDiamondCount);
+    }
+
+    private void Start()
+    {
+        this._defaultPosition = this.transform.position;
     }
 
     public void SetDiamondCount(int diamondCount)
@@ -67,7 +75,7 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
 
     public void SetHeroData(HeroData heroData)
     {
-        foreach(var spriteRend in _iconSpriteRenderers)
+        foreach (var spriteRend in _iconSpriteRenderers)
         {
             spriteRend.sprite = heroData.Icon;
         }
@@ -78,6 +86,19 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
         this._currentHeroData = heroData;
 
         this._currentHeroHp = this._currentHeroData.Health;
+
+        this._objectMouseBehaviour = new ObjectMouseBehaviour(
+            () => !this._isDead && this == ObjectByTurnOwnerController.LocalPlayerHero,
+            () => !this._isDead && this == ObjectByTurnOwnerController.LocalPlayerHero,
+            transform,
+            () => this._defaultPosition,
+            (id) =>
+            {
+                return this._currentDeckCardList.Any(c => c.gameObject.GetInstanceID() == id) || this._currentHandCardList.Any(c => c.gameObject.GetInstanceID() == id);
+            },
+            this._currentHeroData.Damage,
+            this
+            );
     }
 
     #region CARDS_MANIPULATION
@@ -98,7 +119,7 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
     }
 
     public void AddCardInHand(Card card)
-    {   
+    {
         AddCardInternal(card, this._currentHandCardList, this._handCardPositioningLogic, this._cardInHandState);
         card.SetOnClickMethod((clickedCard) => PutCardOnTable(clickedCard));
     }
@@ -111,7 +132,7 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
 
     public void PutCardOnTable(Card card, bool isCheckCrystals = true)
     {
-        if(isCheckCrystals && this._currentDiamondCount < card.CurrentCardData.Price)
+        if (isCheckCrystals && this._currentDiamondCount < card.CurrentCardData.Price)
         {
             return;
         }
@@ -123,10 +144,11 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
         this._currentHandCardList.Remove(card);
         ResetCardsInHandPositions();
 
-        if(isCheckCrystals)
+        if (isCheckCrystals)
             SetDiamondCount(this._currentDiamondCount - card.CurrentCardData.Price);
 
-        IEnumerator waitAndSetControllable() {
+        IEnumerator waitAndSetControllable()
+        {
             yield return new WaitForSeconds(0.2f);
             card.SetIsControllable(this == ObjectByTurnOwnerController.LocalPlayerHero);
         }
@@ -163,12 +185,12 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
         this._currentHandCardList.Clear();
         this._handCardPositioningLogic.Reset();
 
-        foreach(Card card in tempList)
+        foreach (Card card in tempList)
         {
             AddCardInHand(card);
         }
     }
-    
+
     public void Attack(IDamageable damageable)
     {
         //TODO:
@@ -188,7 +210,7 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
 
     public void RecieveDamage(int damage)
     {
-        if(this._isDead)
+        if (this._isDead)
         {
             return;
         }
@@ -200,7 +222,7 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
 
         this._isDead = this._currentHeroHp <= 0;
 
-        if(this._isDead)
+        if (this._isDead)
         {
             SetStateByName("DEATH_STATE");
         }
@@ -209,5 +231,15 @@ public class PlayerHero : StateableObjectBase, IDamageable, IAttackable
     public int GetDamage()
     {
         return this._currentHeroData.Damage;
+    }
+
+    private void OnMouseDrag()
+    {
+        this._objectMouseBehaviour.OnMouseDrag();
+    }
+
+    private void OnMouseUp()
+    {
+        this._objectMouseBehaviour.OnMouseUp();
     }
 }

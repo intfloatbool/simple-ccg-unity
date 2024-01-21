@@ -41,6 +41,8 @@ public class Card : StateableObjectBase, IDamageable, IAttackable, IPlayableObje
 
     public bool IsPlayable { get; set; } = false;
 
+    private ObjectMouseBehaviour _objectMouseBehaviour;
+
     public enum ECardGameplayState : byte
     {
         NONE, ON_HAND, ON_DECK
@@ -55,6 +57,7 @@ public class Card : StateableObjectBase, IDamageable, IAttackable, IPlayableObje
             SetCardData(this._defaultCardData);
         }
     }
+
 
     public void Attack(IDamageable damageable)
     {
@@ -89,6 +92,16 @@ public class Card : StateableObjectBase, IDamageable, IAttackable, IPlayableObje
 
         this._currentCardData = cardData;
         this._currentHealth = cardData.Health;
+
+        this._objectMouseBehaviour = new ObjectMouseBehaviour(
+            () => !this._isDead && this._isControllable,
+            () => !this._isDead && this._isControllable,    
+            this.transform,
+            () => this._defaultPosition,
+            (id) => false,
+            this.GetDamage(),
+            this
+            );
     }
 
     protected override List<GameObject> GetAllPossibleStates()
@@ -117,64 +130,12 @@ public class Card : StateableObjectBase, IDamageable, IAttackable, IPlayableObje
 
     private void OnMouseDrag()
     {
-        if (this._isDead)
-        {
-            return;
-        }
-
-        if (!this._isControllable)
-        {
-            return;
-        }
-
-        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        mousePos.z = 0;
-        transform.position = mousePos;
+        this._objectMouseBehaviour.OnMouseDrag();
     }
 
     private void OnMouseUp()
     {
-        if(this._isDead)
-        {
-            return;
-        }
-
-        if(!this._isControllable)
-        {
-            return;
-        }
-
-        Collider2D[] collidersCollection = Physics2D.OverlapBoxAll(transform.position, Vector2.one * 0.05f, 2f);
-
-        foreach(Collider2D catchedCollider in collidersCollection)
-        {
-            if(catchedCollider.gameObject.GetInstanceID() == this.gameObject.GetInstanceID())
-            {
-                continue;
-            }
-
-            IPlayableObject playableObject = catchedCollider.GetComponent<IPlayableObject>();
-            if(playableObject != null && !playableObject.IsPlayable)
-            {
-                continue;
-            }
-
-            IDamageable target = catchedCollider.GetComponent<IDamageable>();
-            if(target != null)
-            {
-                target.RecieveDamage(this._currentCardData.Damage);
-
-                IAttackable attackable = catchedCollider.GetComponent<IAttackable>();
-                if(attackable != null)
-                {
-                    this.RecieveDamage(attackable.GetDamage());
-                }
-            }
-
-            break;
-        }
-
-        transform.position = this._defaultPosition;
+        this._objectMouseBehaviour.OnMouseUp();
     }
 
     public void RecieveDamage(int damage)
